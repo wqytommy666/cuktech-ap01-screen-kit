@@ -1,0 +1,24 @@
+name: Bug report / 问题报告
+description: Report a reproducible AP01 screen, renderer, or bridge issue.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: input
+    id: firmware
+    attributes:
+      label: AP01 firmware version / 固件版本
+      placeholder: "1.0.2_0031"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce / 复现步骤
+      placeholder: "Commands, rendered asset details, and bridge behavior. Do not include credentials."
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / 日志
+      description: "Redact account data, signed URLs, device IDs, and local addresses."

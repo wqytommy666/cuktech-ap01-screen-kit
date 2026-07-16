@@ -1,0 +1,12 @@
+name: Feature request / 功能建议
+description: Propose a screen source, UI enhancement, or device workflow.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal / 建议
+      placeholder: "Describe the desired display, data source, or workflow."
+    validations:
+      required: true

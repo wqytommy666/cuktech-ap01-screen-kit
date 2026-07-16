@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation / 文档
+    url: ../../README.zh-CN.md
+    about: Read the bilingual setup and compatibility guide.

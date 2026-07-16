@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+artifacts/*
+!artifacts/.gitkeep
+*.bin
+*.zip
+.DS_Store

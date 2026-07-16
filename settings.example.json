@@ -1,0 +1,12 @@
+{
+  "bridge_port": 8765,
+  "refresh_seconds": 300,
+  "firmware_version": "1.0.2_0031",
+  "screen": {
+    "width": 320,
+    "height": 240,
+    "format": "GIF89a",
+    "recommended_max_bytes": 90000,
+    "hard_firmware_slot_max_bytes": 221445
+  }
+}

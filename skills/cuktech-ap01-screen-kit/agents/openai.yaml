@@ -1,0 +1,4 @@
+interface:
+  display_name: "酷态科 AP01 自定义屏幕"
+  short_description: "制作、部署和实时刷新 AP01 自定义屏幕与额度面板"
+  default_prompt: "Use $cuktech-ap01-screen-kit to create and deploy a custom AP01 screen or Claude/Codex quota dashboard."
