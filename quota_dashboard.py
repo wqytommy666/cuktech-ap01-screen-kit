@@ -1006,10 +1006,10 @@ def render_outputs(
             optimize=True,
         )
     # AP01's pet page expects an animated GIF89a; a one-frame GIF can render as
-    # black.  Two slow frames retain that verified container while cutting the
-    # decoder workload and transfer size drastically versus the old 12-frame
-    # animation.  The only motion is a one-pixel pulse on the Codex accent rail.
-    pulse_rows = (151, 157)
+    # black.  Four low-entropy frames add a restrained travelling glint to both
+    # provider rails.  Text and quota values remain fixed, so the tiny decoder
+    # stays smooth while the physical display has visible life.
+    pulse_phases = (0.12, 0.38, 0.66, 0.38)
     for color_count in (96, 80, 72, 64):
         shared_palette = frame.quantize(
             colors=color_count,
@@ -1017,10 +1017,21 @@ def render_outputs(
             dither=Image.Dither.NONE,
         )
         gif_frames = []
-        for pulse_y in pulse_rows:
+        for phase in pulse_phases:
             animated = frame.copy()
             animated_draw = ImageDraw.Draw(animated)
-            animated_draw.point((13, pulse_y), fill="#A4AEC0")
+            claude_y = 56 + round(phase * 63)
+            codex_y = 150 + round(phase * 62)
+            animated_draw.rounded_rectangle(
+                (12, claude_y - 4, 14, claude_y + 4),
+                radius=1,
+                fill="#FFD09A",
+            )
+            animated_draw.rounded_rectangle(
+                (12, codex_y - 4, 14, codex_y + 4),
+                radius=1,
+                fill="#7BE6FF",
+            )
             gif_frames.append(
                 animated.quantize(palette=shared_palette, dither=Image.Dither.NONE)
             )
@@ -1030,7 +1041,7 @@ def render_outputs(
             save_all=True,
             append_images=gif_frames[1:],
             loop=0,
-            duration=1200,
+            duration=600,
             disposal=2,
             optimize=False,
         )

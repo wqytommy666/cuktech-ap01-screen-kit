@@ -44,8 +44,8 @@ message: invalid config for fds
 ### 3.1 两端先更新仓库
 
 ```bash
-git clone https://github.com/wqytommy666/cuktech-ap01-screen-kit.git
-cd cuktech-ap01-screen-kit
+git clone https://github.com/wqytommy666/cuktech-screen-controller.git
+cd cuktech-screen-controller
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 ```

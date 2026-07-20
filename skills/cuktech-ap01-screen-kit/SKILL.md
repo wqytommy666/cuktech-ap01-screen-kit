@@ -3,7 +3,7 @@ name: cuktech-ap01-screen-kit
 description: Create, customize, validate, deploy, and operate Wi-Fi-updated screens for the CUKTECH AP01 detachable display. Use when Codex needs to convert images or GIFs to AP01-safe content, design a custom 320x240 dashboard, show official Claude Desktop and Codex quota windows, build the verified 1.0.2_0031 real-time firmware, install it through Xiaomi OTA, diagnose LAN refreshes, or explain and control Flash wear.
 ---
 
-# CUKTECH AP01 Screen Kit
+# CUKTECH Screen Controller
 
 Build a reusable AP01 project, choose the smallest applicable workflow, and
 validate both the rendered asset and the device request path.
@@ -39,7 +39,8 @@ artifacts into a shareable project.
 ## Preserve device invariants
 
 - Emit exactly 320x240 GIF89a with at least two frames.
-- Prefer two slow frames and less than 90 KB for smooth decoding.
+- Keep animation bounded and prefer less than 90 KB for smooth decoding; still
+  images use two slow frames, while source GIFs may retain up to eight frames.
 - Keep rows `0..39` empty when retaining the stock clock/date overlay.
 - Keep the Mac and AP01 on the same non-isolated LAN and reserve the Mac IP.
 - Treat the firmware patch as specific to model `njcuk.enstor.ap01`, firmware

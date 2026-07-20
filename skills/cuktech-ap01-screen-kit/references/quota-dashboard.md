@@ -24,7 +24,7 @@ Outputs live in `artifacts/`:
 - `quota-dashboard-master.png`: 1280x960 design master.
 - `quota-dashboard@2x.png`: 640x480 preview.
 - `quota-dashboard.png`: 320x240 frame.
-- `quota-dashboard.gif`: lightweight two-frame GIF89a.
+- `quota-dashboard.gif`: lightweight four-frame GIF89a with subtle rail glints.
 - `quota-current.json`: sanitized values.
 
 ## Customize the UI

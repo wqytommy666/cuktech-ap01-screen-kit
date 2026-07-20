@@ -5,3 +5,5 @@ artifacts/*
 *.bin
 *.zip
 .DS_Store
+.build/
+dist/

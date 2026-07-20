@@ -11,8 +11,9 @@ photo, clock face, or any screen other than the quota dashboard.
 ```
 
 Use `cover` for full-bleed artwork and `stretch` only when the source already
-has a 4:3 aspect ratio. The converter emits a lightweight 320x240, looping,
-two-frame GIF89a. Keep the result under 90 KB when possible; the firmware-slot
+has a 4:3 aspect ratio. The converter emits a lightweight 320x240 GIF89a. A
+still image becomes a looping two-frame container; an input GIF retains visible
+motion with bounded frame count and timing. Keep the result under 90 KB when possible; the firmware-slot
 hard limit is 221445 bytes and the RAM loader limit is 256 KiB.
 
 Check the result:

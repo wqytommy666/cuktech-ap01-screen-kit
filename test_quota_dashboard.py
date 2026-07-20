@@ -112,8 +112,8 @@ class QuotaDashboardTests(unittest.TestCase):
             with Image.open(gif_path) as image:
                 self.assertEqual(image.info.get("version"), b"GIF89a")
                 self.assertEqual(image.info.get("loop"), 0)
-                self.assertEqual(image.info.get("duration"), 1200)
-                self.assertEqual(image.n_frames, 2)
+                self.assertEqual(image.info.get("duration"), 600)
+                self.assertEqual(image.n_frames, 4)
             self.assertLessEqual(gif_path.stat().st_size, AP01_GIF_MAX_BYTES)
             self.assertLessEqual(gif_path.stat().st_size, 90_000)
             with Image.open(root / "screen@2x.png") as preview:

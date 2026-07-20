@@ -1,23 +1,108 @@
 <div align="center">
-  <img src="docs/images/quota-dashboard-preview.png" alt="AP01 Claude and Codex quota dashboard preview" width="760" />
+  <img src="docs/images/cuktech-screen-controller-app.jpg" alt="CUKTECH Screen Controller for macOS" width="760" />
 
-  # CUKTECH AP01 Screen Kit
+  # CUKTECH Screen Controller
 
-  **Make the detachable AP01 display yours — custom visuals, live Claude/Codex quotas, and LAN refreshes.**
+  **A macOS controller and agent-ready toolkit for the CUKTECH AP01 detachable display.**
 
-  [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](#quick-start)
-  [![Firmware](https://img.shields.io/badge/AP01-1.0.2__0031-0F172A)](#compatibility)
+  Custom images and GIFs · Live Claude/Codex quotas · Local Wi-Fi refresh · RAM-backed updates
+
+  [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)](#advanced-and-manual-setup)
+  [![Firmware](https://img.shields.io/badge/AP01-1.0.2__0031-0F172A)](#first-time-real-time-firmware-setup)
   [![Screen](https://img.shields.io/badge/Screen-320%C3%97240-159FCB)](#screen-contract)
   [![License](https://img.shields.io/badge/License-MIT-F07A32)](LICENSE)
 
-  [English](README.md) · [简体中文](README.zh-CN.md) · [Visual Tutorial](docs/xiaohongshu-tutorial.zh-CN.md) · [Skill](#codex-skill) · [Quick Start](#quick-start)
+  [Install the macOS app](#method-1--install-the-macos-app) · [Use with a coding agent](#method-2--give-this-repository-to-a-coding-agent)
+
+  [English](README.md) · [简体中文](README.zh-CN.md) · [Visual Tutorial](docs/xiaohongshu-tutorial.zh-CN.md) · [Skill](#coding-agent-skill)
 </div>
 
 ---
 
+## Choose how you want to use it
+
+CUKTECH Screen Controller provides two ways to control the AP01 display.
+
+| | Method 1: macOS app | Method 2: coding agent |
+| --- | --- | --- |
+| Best for | Everyday use with a native UI | First-time setup, diagnostics and deep customization |
+| Interface | CUKTECH Screen Controller for macOS | Claude Code, Codex, OpenCode, WorkBuddy or another terminal-capable agent |
+| Custom images | Choose PNG, JPG or GIF and push | Convert, validate and deploy through repository tools |
+| Quota dashboard | Claude and Codex live usage | Fully configurable renderer and data sources |
+| First-time loader | BFNP preflight and OTA ticket handoff | Complete compatibility, build and installation workflow |
+| Daily refresh | Wi-Fi update to AP01 RAM | Wi-Fi update to AP01 RAM |
+
+## Method 1 — Install the macOS app
+
+Download the latest **CUKTECH Screen Controller** package from
+[GitHub Releases](https://github.com/wqytommy666/cuktech-screen-controller/releases/latest),
+unzip it, then double-click **`Install CUKTECH Screen Controller.command`**.
+The installer creates an isolated local runtime, installs the app in
+`~/Applications`, and enables the login background service.
+
+### Current macOS requirements
+
+- macOS 14 Sonoma or later;
+- Apple Silicon Mac for the current `arm64` build;
+- Mac and AP01 on the same non-isolated Wi-Fi network;
+- Claude Desktop and the official Codex app already signed in for quota mode;
+- an internet connection during first install for the Python dependencies.
+
+The app can show bridge status, switch between the quota dashboard and custom
+artwork, preserve animated GIFs, select `contain` / `cover` / `stretch`, and
+guide BFNP preflight plus temporary OTA ticket handoff.
+
+<div align="center">
+  <img src="docs/images/cuktech-screen-controller-ota.jpg" alt="First deployment and OTA ticket handoff" width="700" />
+</div>
+
+> The app never silently installs firmware. Its **First deployment / OTA**
+> window performs preflight, ticket handoff and download-only verification.
+> A stock AP01 still needs the compatible one-time loader workflow below.
+
+## Method 2 — Give this repository to a coding agent
+
+Copy this repository URL into Claude Code, Codex, OpenCode, WorkBuddy, or
+another coding agent that can read GitHub and run terminal commands:
+
+```text
+https://github.com/wqytommy666/cuktech-screen-controller
+```
+
+Suggested prompt:
+
+```text
+Use https://github.com/wqytommy666/cuktech-screen-controller as the source of
+truth. Read README.md and skills/cuktech-ap01-screen-kit/SKILL.md first.
+
+I have a CUKTECH AP01 detachable display. Start with read-only compatibility
+and network checks. Confirm its model, firmware version, Mac LAN address,
+bridge health, and whether the real-time loader is already installed.
+
+Then install the bridge, configure either the Claude/Codex quota dashboard or
+my custom image, verify /health and an AP01 GET /screen.gif 200 request, and
+enable automatic startup after macOS login. If the loader is missing, build
+and validate the exact compatible image first and ask before installing it.
+Normal screen refreshes must use the RAM-backed /tmp slots and must not
+reinstall firmware.
+```
+
+Agents without native Codex Skill support can still read `SKILL.md` as a
+complete operating guide.
+
+## One-time installation and daily refreshes are different
+
+- **One-time loader installation:** writes firmware Flash once and supports
+  only model `njcuk.enstor.ap01` on firmware `1.0.2_0031`.
+- **Normal image and quota refreshes:** rotate GIF files through
+  `/tmp/.ap01q*.gif`, which is RAM-backed. They do not rewrite firmware or
+  resource partitions.
+- If the Mac goes offline, AP01 keeps its last successfully loaded screen and
+  resumes refreshing when the bridge returns.
+
 ## What is this?
 
-CUKTECH AP01 Screen Kit is a practical toolkit for the detachable display used
+CUKTECH Screen Controller is a native macOS app and practical toolkit for the detachable display used
 by the CUKTECH 10 charging station (`njcuk.enstor.ap01`). It provides a clean
 workflow for:
 
@@ -36,7 +121,7 @@ any screen you want.
 
 | Custom screen | Live quota dashboard | Lightweight runtime |
 | --- | --- | --- |
-| Convert artwork to a verified 320×240 GIF89a asset. | Claude 5-hour / week / Fable 5 and Codex 5-hour / week. | Two slow GIF frames, typically under 90 KB. |
+| Convert artwork to a verified 320×240 GIF89a asset. | Claude 5-hour / week / Fable 5 and Codex 5-hour / week. | Bounded animation, typically under 90 KB. |
 | `contain`, `cover`, and `stretch` layouts. | Dark OLED-oriented UI, provider icons, reset clocks, Chinese labels. | AP01 stores updates in RAM-backed `/tmp`, not its resource partition. |
 
 ## Architecture
@@ -52,13 +137,13 @@ flowchart LR
 The first firmware installation adds the loader. Every later screen refresh is
 fetched over Wi-Fi and rotated through RAM-backed files.
 
-## Quick start
+## Advanced and manual setup
 
 ### 1. Create a local environment
 
 ```bash
-git clone https://github.com/wqytommy666/cuktech-ap01-screen-kit.git
-cd cuktech-ap01-screen-kit
+git clone https://github.com/wqytommy666/cuktech-screen-controller.git
+cd cuktech-screen-controller
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 ```
@@ -71,9 +156,10 @@ python3 -m venv .venv
 .venv/bin/python ap01_screen_bridge.py artifacts/screen.gif --port 8765
 ```
 
-The converter outputs a 320×240, two-frame GIF89a. Replace
-`artifacts/screen.gif` atomically whenever you want new content; the AP01 will
-retrieve it on its next refresh.
+The converter outputs a 320×240 GIF89a. Still images become a reliable two-frame
+container; animated GIFs retain visible motion with bounded frame count and
+timing. Replace `artifacts/screen.gif` atomically whenever you want new content;
+the AP01 will retrieve it on its next refresh.
 
 ### 3. Render a Claude + Codex dashboard
 
@@ -205,7 +291,7 @@ the AP01 firmware or resource partitions.
 - The repository excludes firmware images, Xiaomi account credentials, signed
   download URLs, device IDs, local IP addresses, and generated artifacts.
 
-## Codex Skill
+## Coding-agent Skill
 
 This repository includes a self-contained Codex skill:
 
@@ -235,6 +321,7 @@ ap01_realtime_patch.py     Build the 1.0.2_0031 RAM-backed loader
 ap01_install_firmware.py   Deliver an already-built image through Xiaomi OTA
 realtime_payload/          AP01 loader source
 skills/                    Installable Codex skill
+macos/                     SwiftUI app, installer and release packager
 ```
 
 ## Development

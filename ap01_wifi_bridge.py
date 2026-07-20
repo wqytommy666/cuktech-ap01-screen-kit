@@ -43,10 +43,27 @@ class State:
 STATE = State()
 
 
+def _fetch_with_retry(label: str, callback, attempts: int = 3):
+    """Retry transient account/network failures before keeping the old screen."""
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return callback()
+        except Exception as exc:
+            last_error = exc
+            if attempt == attempts:
+                break
+            delay = attempt * 3
+            print(f"{label} refresh failed ({attempt}/{attempts}): {exc}; retry in {delay}s")
+            time.sleep(delay)
+    assert last_error is not None
+    raise last_error
+
+
 def refresh() -> dict[str, object]:
     """Refresh both official accounts and atomically replace public artifacts."""
-    claude = fetch_claude_desktop()
-    codex = fetch_codex()
+    claude = _fetch_with_retry("Claude", fetch_claude_desktop)
+    codex = _fetch_with_retry("Codex", fetch_codex)
     temporary_png = PNG.with_name(PNG.name + ".tmp")
     temporary_gif = GIF.with_name(GIF.name + ".tmp")
     temporary_master = MASTER.with_name(MASTER.name + ".tmp")
@@ -149,7 +166,10 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def log_message(self, fmt: str, *args: object) -> None:
-        print(f"[{self.log_date_time_string()}] {self.address_string()} {fmt % args}")
+        message = fmt % args
+        if '"GET /health ' in message:
+            return
+        print(f"[{self.log_date_time_string()}] {self.address_string()} {message}")
 
 
 def lan_ip() -> str:

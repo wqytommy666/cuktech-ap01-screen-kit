@@ -96,7 +96,10 @@ def make_handler(source: Path):
                 self.wfile.write(body)
 
         def log_message(self, fmt: str, *args: object) -> None:
-            print(f"[{self.log_date_time_string()}] {self.address_string()} {fmt % args}")
+            message = fmt % args
+            if '"GET /health ' in message:
+                return
+            print(f"[{self.log_date_time_string()}] {self.address_string()} {message}")
 
     return Handler
 
