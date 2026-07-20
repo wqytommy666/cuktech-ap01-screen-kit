@@ -115,7 +115,25 @@ def build_firmware(source: Path, gif_path: Path, output: Path) -> None:
     )
 
 
-def choose_fds_device(cloud: MiCloud) -> dict[str, Any]:
+def choose_fds_device(
+    cloud: MiCloud,
+    *,
+    did: str | None = None,
+    model: str | None = None,
+) -> dict[str, Any]:
+    """Choose the device identity used only to obtain an FDS upload URL.
+
+    AP01 itself has no server-side FDS configuration, so its DID/model cannot
+    be used here.  An explicit identity is useful when the uploader account
+    has multiple gateway-class devices; it does not change the AP01 that later
+    receives ``miIO.ota``.
+    """
+
+    if bool(did) != bool(model):
+        raise ValueError("--fds-did 和 --fds-model 必须同时提供")
+    if did and model:
+        return {"did": str(did), "model": str(model)}
+
     # AP01 itself has no FDS upload configuration. Xiaomi gateways generally do.
     candidates = [
         item
@@ -123,12 +141,38 @@ def choose_fds_device(cloud: MiCloud) -> dict[str, Any]:
         if str(item.get("model", "")).startswith(("lumi.gateway.", "xiaomi.gateway."))
     ]
     if not candidates:
-        raise RuntimeError("账号中未找到可用于 Xiaomi FDS 上传的网关")
+        raise RuntimeError(
+            "账号中未找到可用于 Xiaomi FDS 上传的网关。AP01 自身没有 FDS "
+            "服务端配置，不能用 njcuk.enstor.ap01 的 DID/model 代替；请由含 "
+            "FDS 网关的账号执行 --upload-only，或使用已签名的 --ota-url。"
+        )
     return candidates[0]
 
 
-def upload_to_xiaomi(cloud: MiCloud, firmware: Path) -> str:
-    gateway = choose_fds_device(cloud)
+def probe_ota_url(url: str) -> None:
+    """Require the AP01-compatible CDN URL to return a BFNP image header."""
+
+    probe = requests.get(
+        url,
+        headers={"Range": "bytes=0-3"},
+        stream=True,
+        timeout=30,
+    )
+    probe.raise_for_status()
+    magic = next(probe.iter_content(4), b"")
+    probe.close()
+    if magic != b"BFNP":
+        raise RuntimeError("OTA URL 回读文件头失败：不是 AP01 BFNP 镜像")
+
+
+def upload_to_xiaomi(
+    cloud: MiCloud,
+    firmware: Path,
+    *,
+    fds_did: str | None = None,
+    fds_model: str | None = None,
+) -> str:
+    gateway = choose_fds_device(cloud, did=fds_did, model=fds_model)
     request_payload = {
         "did": str(gateway["did"]),
         "model": str(gateway["model"]),
@@ -137,7 +181,13 @@ def upload_to_xiaomi(cloud: MiCloud, firmware: Path) -> str:
     prepared = cloud.request("home/genpresignedurl", request_payload)
     upload = (prepared.get("result") or {}).get("bin") or {}
     if not upload.get("ok") or not upload.get("url") or not upload.get("obj_name"):
-        raise RuntimeError(f"Xiaomi FDS 预签名失败：{prepared.get('message', 'unknown')}")
+        raise RuntimeError(
+            "Xiaomi FDS 预签名失败："
+            f"code={prepared.get('code')} "
+            f"message={prepared.get('message', 'unknown')}；"
+            "传入的 DID/model 必须属于当前账号中真正具备 FDS 配置的网关，"
+            "不能使用 AP01 DID/model，也不存在可手工填写的 AP01 bucket。"
+        )
 
     print("正在上传到 Xiaomi FDS…")
     # Do not add Content-Type: it is not part of Xiaomi's pre-signed PUT signature.
@@ -159,17 +209,7 @@ def upload_to_xiaomi(cloud: MiCloud, firmware: Path) -> str:
         (parsed.scheme, OTA_CDN_HOST, parsed.path, parsed.query, parsed.fragment)
     )
 
-    probe = requests.get(
-        ota_url,
-        headers={"Range": "bytes=0-3"},
-        stream=True,
-        timeout=30,
-    )
-    probe.raise_for_status()
-    magic = next(probe.iter_content(4), b"")
-    probe.close()
-    if magic != b"BFNP":
-        raise RuntimeError("Xiaomi IoT OTA CDN 回读文件头失败")
+    probe_ota_url(ota_url)
     print(f"上传完成，已切换到 AP01 官方兼容 OTA CDN：{OTA_CDN_HOST}")
     return ota_url
 
@@ -304,11 +344,15 @@ def main() -> None:
         action="store_true",
         help="仅验证 OTA CDN 下载与 MD5，不安装镜像",
     )
+    parser.add_argument("--fds-did", help="显式指定具备 FDS 能力的网关 DID")
+    parser.add_argument("--fds-model", help="显式指定具备 FDS 能力的网关 model")
     parser.add_argument("--timeout", type=int, default=180)
     args = parser.parse_args()
 
     if args.install and args.download_only:
         parser.error("--install 和 --download-only 不能同时使用")
+    if bool(args.fds_did) != bool(args.fds_model):
+        parser.error("--fds-did 和 --fds-model 必须同时提供")
     cloud = MiCloud() if args.install or args.download_only or args.firmware is None else None
     source = args.firmware
     if source is None:
@@ -321,7 +365,12 @@ def main() -> None:
         print("已完成构建并刷新 AP01 Recovery 长度/CRC 元数据")
         return
     assert cloud is not None
-    url = upload_to_xiaomi(cloud, args.output)
+    url = upload_to_xiaomi(
+        cloud,
+        args.output,
+        fds_did=args.fds_did,
+        fds_model=args.fds_model,
+    )
     deliver(
         cloud,
         args.output,

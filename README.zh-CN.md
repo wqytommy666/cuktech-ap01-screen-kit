@@ -10,7 +10,7 @@
   [![Screen](https://img.shields.io/badge/Screen-320%C3%97240-159FCB)](#屏幕协议)
   [![License](https://img.shields.io/badge/License-MIT-F07A32)](LICENSE)
 
-  [English](README.md) · [简体中文](README.zh-CN.md) · [Skill](#codex-skill) · [快速开始](#快速开始)
+  [English](README.md) · [简体中文](README.zh-CN.md) · [图文教程](docs/xiaohongshu-tutorial.zh-CN.md) · [Skill](#codex-skill) · [快速开始](#快速开始)
 </div>
 
 ---
@@ -118,6 +118,43 @@ http://MAC_LAN_IP:8765/health
 最终安装前先启动 Bridge。日志中出现
 `AP01_IP "GET /screen.gif" 200`，即表示端到端实时刷新已打通。
 
+### 小米 FDS 上传前提
+
+AP01 自身没有小米云端的 FDS 上传配置。把 AP01 的 DID/model 传给
+`/home/genpresignedurl`，会稳定返回 `code=-6`、`invalid config for fds`。
+仓库原本的传输链路实际使用了两个不同的设备身份：
+
+- 账号中的 `lumi.gateway.*` 或 `xiaomi.gateway.*` 网关只负责申请 FDS
+  上传地址；
+- AP01 的 DID 只在后续 `miIO.ota` 下载指令中作为目标设备。
+
+因此不存在可以手工填写的 AP01 bucket、隐藏 model 或特殊 DID。如果 AP01
+账号没有具备 FDS 配置的网关，可由可信的网关账号上传**完全相同的 BIN**，
+再把短时有效的签名 URL 交给 AP01 账号执行下载验证。
+
+在含网关的上传账号/Mac 上执行：
+
+```bash
+.venv/bin/python ap01_install_firmware.py \
+  artifacts/screen-realtime.bin \
+  --upload-only --url-output /tmp/ap01-ota-url.txt
+```
+
+如果自动识别不明确，可以补充该账号真实拥有且具备 FDS 配置的网关：
+`--fds-did DID --fds-model lumi.gateway.MODEL`。随便填写 model 或使用 AP01
+的 DID 都不能绕过服务端配置。
+
+随后把 `/tmp/ap01-ota-url.txt` 发给 AP01 所属账号，在 URL 失效前执行：
+
+```bash
+.venv/bin/python ap01_install_firmware.py \
+  artifacts/screen-realtime.bin \
+  --download-only --ota-url-file /path/to/ap01-ota-url.txt --timeout 360
+```
+
+这条命令只验证 AP01 能否下载及校验 MD5，不会安装或切换启动分区。上传端和
+下载端必须使用逐字节相同的 `screen-realtime.bin`，中间不要重新构建。
+
 ## 屏幕协议
 
 | 要求 | 参数 |
@@ -185,7 +222,7 @@ skills/                    可安装的 Codex Skill
 ## 开发
 
 ```bash
-.venv/bin/python -m unittest -v test_quota_dashboard.py
+.venv/bin/python -m unittest -v test_quota_dashboard.py test_ap01_install_firmware.py
 .venv/bin/python ap01_prepare_screen.py docs/images/quota-dashboard-preview.png /tmp/ap01.gif
 ```
 

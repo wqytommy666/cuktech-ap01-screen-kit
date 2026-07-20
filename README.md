@@ -10,7 +10,7 @@
   [![Screen](https://img.shields.io/badge/Screen-320%C3%97240-159FCB)](#screen-contract)
   [![License](https://img.shields.io/badge/License-MIT-F07A32)](LICENSE)
 
-  [English](README.md) · [简体中文](README.zh-CN.md) · [Skill](#codex-skill) · [Quick Start](#quick-start)
+  [English](README.md) · [简体中文](README.zh-CN.md) · [Visual Tutorial](docs/xiaohongshu-tutorial.zh-CN.md) · [Skill](#codex-skill) · [Quick Start](#quick-start)
 </div>
 
 ---
@@ -126,6 +126,44 @@ and reserve the Mac's DHCP address before building the URL.
 Start the bridge before the final installation. A bridge log such as
 `AP01_IP "GET /screen.gif" 200` confirms end-to-end operation.
 
+### Xiaomi FDS upload prerequisite
+
+The AP01 itself has no server-side FDS upload configuration. Passing the AP01
+DID/model to `/home/genpresignedurl` therefore returns `code=-6` (`invalid
+config for fds`). In the original transport, these are two different device
+identities:
+
+- an FDS-enabled `lumi.gateway.*` or `xiaomi.gateway.*` identity obtains the
+  signed upload URL;
+- the AP01 DID receives the later `miIO.ota` download command.
+
+There is no AP01 bucket, model alias, or hard-coded object name to enter. If
+the AP01 owner's account has no FDS-enabled gateway, a trusted gateway account
+can upload the **exact same BIN** and pass the short-lived signed URL back.
+
+On the uploader's Mac/account:
+
+```bash
+.venv/bin/python ap01_install_firmware.py \
+  artifacts/screen-realtime.bin \
+  --upload-only --url-output /tmp/ap01-ota-url.txt
+```
+
+If automatic discovery is ambiguous, add a real gateway identity owned by
+that account: `--fds-did DID --fds-model lumi.gateway.MODEL`.
+
+On the AP01 owner's Mac/account, immediately validate download without
+installing:
+
+```bash
+.venv/bin/python ap01_install_firmware.py \
+  artifacts/screen-realtime.bin \
+  --download-only --ota-url-file /path/to/ap01-ota-url.txt --timeout 360
+```
+
+The signed URL is transferable, but temporary. Both sides must use the same
+BIN bytes; do not rebuild between upload and download validation.
+
 ## Screen contract
 
 | Requirement | Value |
@@ -199,7 +237,7 @@ skills/                    Installable Codex skill
 ## Development
 
 ```bash
-.venv/bin/python -m unittest -v test_quota_dashboard.py
+.venv/bin/python -m unittest -v test_quota_dashboard.py test_ap01_install_firmware.py
 .venv/bin/python ap01_prepare_screen.py docs/images/quota-dashboard-preview.png /tmp/ap01.gif
 ```
 

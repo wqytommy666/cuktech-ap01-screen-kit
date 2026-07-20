@@ -56,6 +56,33 @@ the exact prebuilt image without rebuilding it:
   artifacts/ap01-1.0.2_0031-screen-realtime.bin --install
 ```
 
+AP01 has no FDS configuration of its own. Its DID/model returns `code=-6`
+from `/home/genpresignedurl`. The default uploader therefore needs a real
+FDS-enabled `lumi.gateway.*` or `xiaomi.gateway.*` identity from the signed-in
+account. That gateway identity is used only for upload; `deliver()` still
+targets the AP01 DID.
+
+If the AP01 account has no such gateway, separate upload from delivery. On a
+trusted account containing an FDS-enabled gateway, upload the exact BIN:
+
+```bash
+.venv/bin/python ap01_install_firmware.py artifacts/screen-realtime.bin \
+  --upload-only --url-output /tmp/ap01-ota-url.txt
+```
+
+Transfer the short-lived URL file to the AP01 owner and immediately validate
+without installing:
+
+```bash
+.venv/bin/python ap01_install_firmware.py artifacts/screen-realtime.bin \
+  --download-only --ota-url-file /path/to/ap01-ota-url.txt --timeout 360
+```
+
+Both commands must refer to byte-identical firmware. There is no AP01 bucket
+or hidden AP01 FDS model to enter manually. Explicit `--fds-did` and
+`--fds-model` options select a real gateway when automatic discovery is
+ambiguous; they cannot grant FDS capability to AP01.
+
 Require OTA state progression through downloaded/installed, a rebooted uptime,
 and an AP01 request for `/screen.gif`. The normal charging UI is unchanged;
 select the virtual-pet page to view custom content.
