@@ -10,6 +10,11 @@ different version; port the reverse-engineered hooks first.
   Automatic Claude/Codex account collection is currently macOS-specific.
 - Put the Bridge computer and AP01 on the same non-isolated LAN.
 - Reserve the computer's IPv4 address in DHCP before building the firmware URL.
+  Confirm the router-visible MAC, keep macOS Private Wi-Fi Address fixed, then
+  reconnect and prove the IP is unchanged. If reservation is impossible, tell
+  the user before installation that a later IP change requires restoring the
+  embedded address or rebuilding/reinstalling the loader once for a stabilized
+  new address.
 - Install Python dependencies plus `riscv64-elf-gcc` and
   `riscv64-elf-binutils`.
 

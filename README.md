@@ -86,6 +86,15 @@ first run.
 
 ### Network and device preparation
 
+> [!IMPORTANT]
+> **Reserve the Bridge computer's IP before the first loader installation.**
+> AP01 stores a literal `http://COMPUTER_IP:8765/screen.gif` URL and does not
+> follow DHCP changes. Prefer a router DHCP reservation. If the address later
+> changes, restore the old address first (no Flash write); only when that is
+> impossible should you stabilize a new address and rebuild/reinstall the
+> loader (one Flash write). See the
+> [Bridge IP reservation and recovery guide](docs/STABLE_IP_GUIDE.md).
+
 | Scenario | AP01 / charging station | Host computer | Internet required? |
 | --- | --- | --- | --- |
 | Already-patched screen showing local artwork | Powered and connected to the home LAN | Same reachable LAN with Bridge running | No; local LAN is enough |
@@ -102,7 +111,13 @@ first run.
 - keep the host awake and logged in for live refreshes. If it becomes
   unreachable, the current live GIF self-expires to a disconnected page after
   about seven minutes;
-- reserve the host's DHCP address in the router to avoid later IP changes.
+- **before installing the loader**, reserve the host's DHCP address in the
+  router. On macOS keep Private Wi-Fi Address fixed rather than rotating and
+  bind the MAC currently shown by the router;
+- if the router cannot reserve an address, explicitly plan for restoring the
+  embedded old IP after a DHCP change or rebuilding/reinstalling the loader
+  once for a stabilized new IP. Do not repeatedly flash while the IP is still
+  changing.
 
 See the full [preparation and connectivity checklist](docs/PREPARATION_CHECKLIST.md).
 
@@ -145,6 +160,12 @@ Windows. On macOS run ./macos/diagnose.sh. On Windows read
 docs/WINDOWS_GUIDE.md and run scripts/diagnose-windows.ps1. Start with read-only
 compatibility and network checks. Confirm the LAN address, Bridge health, and
 whether the real-time loader is already installed.
+
+Before any first-loader build, identify the Bridge computer's current IP and
+MAC in the router, create a DHCP reservation, reconnect, and prove that the
+address remains unchanged. If the router cannot reserve it, explain that AP01
+stores a literal IP: later address changes require restoring the old IP, or
+stabilizing a new IP and rebuilding/reinstalling the loader with confirmation.
 
 Then install the Bridge and configure either the automatic Claude/Codex quota
 dashboard or my custom image. Verify /health and an AP01 GET /screen.gif 200 request, and
@@ -285,6 +306,10 @@ Claude Electron profile with DPAPI. Codex uses its local `app-server` on both.
 The built-in binary patch targets **only** AP01 model `njcuk.enstor.ap01` on
 firmware **`1.0.2_0031`**. Keep the Bridge computer and AP01 on the same
 non-isolated LAN and reserve that computer's DHCP address before building the URL.
+
+Treat the reservation as a precondition rather than an optional optimization.
+Follow the [stable-IP guide](docs/STABLE_IP_GUIDE.md), reconnect the host, and
+verify the reserved address before generating the firmware.
 
 ```bash
 # Confirm and download the matching stock image through the signed-in Mi Home account.

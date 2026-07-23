@@ -32,7 +32,9 @@ allow Python on Windows Private networks), and allow TCP port `8765` through
 VPN/firewall software. Ethernet is fine if it can
 reach the AP01 across the same LAN/VLAN.
 
-Reserve the Bridge computer's LAN address with DHCP. The AP01 must be able to request:
+Before the first loader installation, reserve the Bridge computer's LAN
+address with DHCP. Use the IP/MAC shown by the router and never take an address
+already assigned to another device. The AP01 must be able to request:
 
 ```text
 http://<COMPUTER_LAN_IP>:8765/screen.gif
@@ -43,6 +45,18 @@ The end-to-end success signal is a logged request such as:
 ```text
 AP01_IP "GET /screen.gif HTTP/1.0" 200
 ```
+
+### Why this reservation is a loader precondition
+
+The loader stores the complete `http://COMPUTER_IP:8765/screen.gif` URL and
+does not discover a host after DHCP changes. On macOS, keep Private Wi-Fi
+Address fixed rather than rotating. Reconnect or restart once and prove that
+the address remains unchanged before installing.
+
+If reservation is unavailable, installation can continue only with a clear
+recovery plan: restore the embedded old IP first without writing Flash; when
+that is impossible, stabilize a new IP and rebuild, validate, and reinstall
+the loader once. See the [stable-IP guide](STABLE_IP_GUIDE.md).
 
 ## 4. Internet requirements
 
@@ -83,7 +97,9 @@ interval is about five minutes, so a pushed image may not appear immediately.
 - [ ] AP01 on stable power and online in Mi Home
 - [ ] Same non-guest, non-isolated LAN
 - [ ] Local TCP 8765 allowed by macOS/Windows/VPN/firewall
-- [ ] Bridge-computer DHCP reservation configured if possible
+- [ ] Bridge-computer DHCP reservation configured and verified after reconnect
+- [ ] macOS Private Wi-Fi Address is fixed, or the reservation was recreated for the router-visible MAC
+- [ ] If reservation is impossible, the user understands that an unrecoverable address change requires one loader reinstall
 - [ ] Official Claude/Codex clients signed in for quota mode
 - [ ] Stock loader work verified as `njcuk.enstor.ap01` / `1.0.2_0031`
 - [ ] User understands daily updates use `/tmp` RAM and do not reinstall firmware

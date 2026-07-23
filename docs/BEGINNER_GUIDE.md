@@ -19,6 +19,12 @@ Quota refreshes need internet on the computer. A first loader installation on a
 stock screen needs both the computer and AP01 online, with the AP01 visible in Mi
 Home and kept on stable power.
 
+Before a first loader installation, reserve the Bridge computer's current IP
+in the router and verify it after reconnecting. AP01 stores a literal IP and
+does not automatically follow DHCP changes. On macOS keep Private Wi-Fi
+Address fixed rather than rotating. Read the
+[Bridge IP reservation and recovery guide](STABLE_IP_GUIDE.md) before install.
+
 If the AP01 has already shown a custom image or quota dashboard, its real-time
 loader is installed and normal updates only use RAM. A completely stock AP01
 needs the supported loader installed once. Open **First deployment / OTA** and
@@ -36,9 +42,10 @@ performs download-only verification, and asks again immediately before install.
 5. Follow the in-app **新手引导 / Getting started** readiness checks.
 
 For a stock AP01, open **First deployment / OTA**, choose the gateway-free
-package action, run download-only verification, then use the separately
-confirmed install action. Users whose AP01 already shows custom content must
-skip this step and must not reinstall the loader.
+package action only after the Bridge IP is reserved, run download-only
+verification, then use the separately confirmed install action. Users whose
+AP01 already shows custom content must skip this step and must not reinstall
+the loader merely to change artwork.
 
 Choose **显示 Claude / Codex 额度** for quotas, or choose a fit mode and click
 **选择图片并推送** for an image or animated GIF. The Windows Release is
@@ -64,7 +71,11 @@ do not run scripts under macos/. Configure the app/Bridge, verify
 /health, validate the 320x240 GIF89a, and show a logged AP01 GET /screen.gif
 200. If the real-time loader is already installed, do not use OTA. If it is
 missing, verify the exact supported AP01 model and firmware and ask me again
-immediately before the one-time installation. Daily updates must use /tmp RAM.
+immediately before the one-time installation. Before building, identify the
+Bridge host's IP/MAC in the router, create a DHCP reservation, reconnect, and
+verify that it remains unchanged. If reservation is unavailable, explain that
+a later DHCP change requires restoring the embedded old IP or one rebuild and
+reinstall for a stabilized new IP. Daily updates must use /tmp RAM.
 ```
 
 ## If something stops updating
@@ -80,3 +91,9 @@ Run ./macos/diagnose.sh and repair the Bridge without performing OTA.
 The Bridge computer must remain logged in and connected to the same reachable
 LAN. In quota mode, AP01 changes to a disconnected page after about seven
 offline minutes; user-selected custom artwork remains unchanged.
+
+If `/health` works locally but no AP01 `GET /screen.gif` appears, compare the
+computer's current IP with the address embedded in the loader. Restore the old
+IP in the router first without reflashing. Only when the old address cannot be
+restored should you reserve a new one and perform one validated loader
+reinstall. Never force an old address that the router shows as occupied.

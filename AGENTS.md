@@ -32,8 +32,8 @@ operations below as different workflows:
    - the AP01 is powered, paired in Mi Home, and shown online before any
      first-loader workflow;
    - the Bridge computer and AP01 are on the same LAN without client/AP isolation;
-   - VPN/firewall rules permit LAN access to TCP 8765 and the computer LAN address
-     is preferably reserved with DHCP;
+   - VPN/firewall rules permit LAN access to TCP 8765 and the Bridge computer's
+     routed LAN address is reserved with DHCP before a loader build;
    - Claude Desktop and the official Codex/ChatGPT app are installed and
      signed in when automatic quota display is requested on either platform;
    - whether this AP01 already requests `GET /screen.gif` from the Bridge computer;
@@ -44,6 +44,12 @@ operations below as different workflows:
    host computer; a first-loader installation needs the AP01 and installation
    environment online. USB and the
    charging-base contacts are not the screen-content transport used here.
+   Explain that the loader embeds a literal IPv4 URL. Record the routed
+   interface, router-visible MAC, current IP, and reservation status before a
+   first install. On macOS keep Private Wi-Fi Address fixed, not rotating. If
+   reservation is unavailable, explicitly explain that a later address change
+   requires restoring the old IP or one rebuilt/reinstalled loader for a
+   stabilized new IP.
 4. For a source/agent installation, run the platform-appropriate setup:
 
    ```bash
@@ -86,6 +92,11 @@ operations below as different workflows:
 - Never guess firmware offsets or reuse the patch on another build.
 - Never OTA an already real-time-patched image through `ap01_custom_ota.py`.
 - Never run OTA merely to update artwork or quota values.
+- Never force an old IP onto the Bridge until the router client/DHCP tables
+  prove it is free; a failed ping is not sufficient evidence.
+- When `GET /screen.gif` disappears after a host-address change, restore the
+  embedded old IP first without OTA. Rebuild/reinstall only when the old
+  address cannot be recovered, and reserve the new address before building.
 - Never commit cookies, Xiaomi credentials, device IDs, signed OTA URLs,
   firmware binaries, or generated `artifacts/`.
 - Require the user's explicit confirmation immediately before a one-time
