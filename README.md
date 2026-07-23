@@ -64,11 +64,11 @@ Download the latest **CUKTECH Screen Controller** package from
 [GitHub Releases](https://github.com/wqytommy666/cuktech-screen-controller/releases/latest).
 
 - **Windows 10/11 x64:** extract
-  `CUKTECH-Screen-Controller-0.4.0-Windows-x64.zip`, then double-click
+  `CUKTECH-Screen-Controller-0.4.1-Windows-x64.zip`, then double-click
   **`Install CUKTECH Screen Controller.cmd`**. See the
   [Windows guide](docs/WINDOWS_GUIDE.md).
 - **Apple Silicon macOS:** extract
-  `CUKTECH-Screen-Controller-v0.4.0-macOS-arm64.zip`, then double-click
+  `CUKTECH-Screen-Controller-v0.4.1-macOS-arm64.zip`, then double-click
   **`Install CUKTECH Screen Controller.command`**.
 
 Both installers enable the login background Bridge. The Windows package is
@@ -99,8 +99,9 @@ first run.
   LAN access to TCP port `8765`;
 - before a first loader installation, have the AP01 owner's Mi Home account
   available and verify model `njcuk.enstor.ap01` and firmware `1.0.2_0031`;
-- keep the host awake and logged in for live refreshes. AP01 retains the last
-  successful frame while the computer is asleep or offline;
+- keep the host awake and logged in for live refreshes. If it becomes
+  unreachable, the current live GIF self-expires to a disconnected page after
+  about seven minutes;
 - reserve the host's DHCP address in the router to avoid later IP changes.
 
 See the full [preparation and connectivity checklist](docs/PREPARATION_CHECKLIST.md).
@@ -175,8 +176,19 @@ and setup/diagnostic commands for both platforms:
 - **Normal image and quota refreshes:** rotate GIF files through
   `/tmp/.ap01q*.gif`, which is RAM-backed. They do not rewrite firmware or
   resource partitions.
-- If the Bridge computer goes offline, AP01 keeps its last successfully loaded screen and
-  resumes refreshing when the bridge returns.
+- If the Bridge computer goes offline, AP01 shows a disconnected page after
+  about seven minutes and resumes the live dashboard when the Bridge returns.
+
+### How to tell whether quota data is current
+
+- the app reads the signed-in Claude/Codex sources every five minutes;
+- each live plan badge includes a green status dot and the latest successful
+  refresh time for comparison with the AP01 clock;
+- a collection failure atomically replaces old values with a large
+  **Disconnected / Please connect** screen;
+- the delivered live GIF self-expires after roughly seven minutes, so even a
+  powered-off computer cannot leave an apparently current quota card forever;
+- the next successful refresh automatically restores the live dashboard.
 
 ## What is this?
 

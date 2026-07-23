@@ -24,7 +24,7 @@ macOS 版使用同一套 AP01 Bridge 与画面格式，可以直接切换 Claude
 ## 方法一：安装 Windows 软件（推荐）
 
 1. 打开 [GitHub Releases](https://github.com/wqytommy666/cuktech-screen-controller/releases/latest)；
-2. 下载 **`CUKTECH-Screen-Controller-0.4.0-Windows-x64.zip`**；
+2. 下载 **`CUKTECH-Screen-Controller-0.4.1-Windows-x64.zip`**；
 3. 右键 ZIP，选择“全部解压”。不要在压缩包预览窗口里直接运行；
 4. 双击 **`Install CUKTECH Screen Controller.cmd`**；
 5. 安装后从开始菜单打开 **CUKTECH Screen Controller**；
@@ -194,7 +194,8 @@ Set-ExecutionPolicy -Scope Process Bypass
 ```
 
 这些路径位于 RAM。每 5 分钟刷新额度不会反复擦写固件或资源分区，也不会把
-Flash“刷烂”。电脑睡眠或关机后，AP01 保留最后一次成功画面；电脑恢复后继续刷新。
+Flash“刷烂”。电脑睡眠或关机后，额度模式约 7 分钟会显示“未连接，请连接”；
+电脑恢复后自动继续刷新。
 
 ## 系统要求与限制
 

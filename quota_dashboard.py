@@ -721,7 +721,13 @@ def _compact_reset_summary(quota: Quota) -> str:
     return f"{five}｜{week}"
 
 
-def render_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):
+def render_master(
+    claude: Quota,
+    codex: Quota,
+    scale: int = MASTER_SCALE,
+    *,
+    refreshed_at: datetime | None = None,
+):
     """Render a high-resolution vector-like master using 320x240 logical units."""
 
     from PIL import Image, ImageColor, ImageDraw, ImageFilter
@@ -751,6 +757,8 @@ def render_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):
     danger_color = "#E94F67"
     claude_color = "#F07A32"
     codex_color = "#159FCB"
+    live_color = "#39D98A"
+    refreshed_at = (refreshed_at or datetime.now().astimezone()).astimezone()
 
     provider_font = _font(s(14), bold=True)
     plan_font = _font(s(8), bold=True)
@@ -1037,7 +1045,8 @@ def render_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):
         center_y = y1 + 12
         text((provider_x, center_y), title, provider_font, text_color, "lm")
         provider_width = draw.textlength(title, font=provider_font) / scale
-        plan_width = draw.textlength(plan, font=plan_font) / scale + 10
+        freshness = f"{plan} · {refreshed_at:%H:%M}"
+        plan_width = draw.textlength(freshness, font=plan_font) / scale + 18
         badge = (
             provider_x + provider_width + 6,
             y1 + 5.5,
@@ -1051,13 +1060,11 @@ def render_master(claude: Quota, codex: Quota, scale: int = MASTER_SCALE):
             bottom="#07101E",
             outline=blend("#16243A", accent, 0.30),
         )
-        text(
-            ((badge[0] + badge[2]) / 2, (badge[1] + badge[3]) / 2),
-            plan,
-            plan_font,
-            accent,
-            "mm",
+        draw.ellipse(
+            sr((badge[0] + 5, center_y - 1.8, badge[0] + 8.6, center_y + 1.8)),
+            fill=live_color,
         )
+        text((badge[0] + 12, center_y), freshness, plan_font, accent, "lm")
         text((x2 - 7, center_y), reset_summary, reset_summary_font, text_color, "rm")
 
     # Compact inset cards leave more breathing room around the tiny AP01 panel
@@ -1173,6 +1180,8 @@ def render_outputs(
     gif_path: Path,
     master_path: Path,
     preview_2x_path: Path | None = None,
+    *,
+    refreshed_at: datetime | None = None,
 ) -> None:
     from PIL import Image, ImageDraw
 
@@ -1181,7 +1190,13 @@ def render_outputs(
         paths.append(preview_2x_path)
     for path in paths:
         path.parent.mkdir(parents=True, exist_ok=True)
-    master = render_master(claude, codex, scale=MASTER_SCALE)
+    refreshed_at = (refreshed_at or datetime.now().astimezone()).astimezone()
+    master = render_master(
+        claude,
+        codex,
+        scale=MASTER_SCALE,
+        refreshed_at=refreshed_at,
+    )
     frame = _device_frame_from_master(master)
     master.save(master_path, format="PNG", optimize=True)
     frame.save(png_path, format="PNG", optimize=True)
@@ -1191,13 +1206,21 @@ def render_outputs(
             format="PNG",
             optimize=True,
         )
-    # AP01's pet page expects an animated GIF89a; a one-frame GIF can render as
-    # black.  Four low-entropy frames add a restrained travelling glint to both
-    # provider rails.  Text and quota values remain fixed, so the tiny decoder
-    # stays smooth while the physical display has visible life.
+    # The final frame is a self-expiring connection page. A successful AP01
+    # poll replaces/restarts this GIF every five minutes, before that frame is
+    # reached. If the computer or Bridge disappears completely, the decoder
+    # advances to “未连接，请连接” after seven minutes instead of preserving an
+    # ambiguous old dashboard forever. Omitting the loop extension makes the
+    # decoder stop on that final status frame.
     pulse_phases = (0.12, 0.38, 0.66, 0.38)
     for color_count in (96, 80, 72, 64):
-        shared_palette = frame.quantize(
+        disconnected = _device_frame_from_master(
+            render_connection_status_master(last_success_at=refreshed_at)
+        )
+        palette_source = Image.new("RGB", (WIDTH * 2, HEIGHT), "#01040B")
+        palette_source.paste(frame, (0, 0))
+        palette_source.paste(disconnected, (WIDTH, 0))
+        shared_palette = palette_source.quantize(
             colors=color_count,
             method=Image.Quantize.MEDIANCUT,
             dither=Image.Dither.NONE,
@@ -1221,22 +1244,170 @@ def render_outputs(
             gif_frames.append(
                 animated.quantize(palette=shared_palette, dither=Image.Dither.NONE)
             )
+        gif_frames.append(frame.quantize(palette=shared_palette, dither=Image.Dither.NONE))
+        gif_frames.append(
+            disconnected.quantize(palette=shared_palette, dither=Image.Dither.NONE)
+        )
         gif_frames[0].save(
             gif_path,
             format="GIF",
             save_all=True,
             append_images=gif_frames[1:],
-            loop=0,
-            duration=600,
+            duration=[600, 600, 600, 600, 417_600, 60_000],
             disposal=2,
             optimize=False,
         )
-        if gif_path.stat().st_size <= AP01_GIF_MAX_BYTES:
+        if gif_path.stat().st_size <= min(AP01_GIF_MAX_BYTES, 90_000):
             break
     else:
         raise RuntimeError(
-            f"GIF exceeds AP01 slot: {gif_path.stat().st_size} > {AP01_GIF_MAX_BYTES} bytes"
+            f"GIF exceeds lightweight AP01 target: {gif_path.stat().st_size} > 90000 bytes"
         )
+
+
+def render_connection_status_master(
+    *,
+    last_success_at: datetime | None = None,
+    scale: int = MASTER_SCALE,
+):
+    """Return the high-resolution disconnected design used by both GIF paths."""
+    from PIL import Image, ImageDraw
+
+    if scale < 1:
+        raise ValueError("scale must be at least 1")
+
+    def s(value: float) -> int:
+        return int(round(value * scale))
+
+    background = "#01040B"
+    master = Image.new("RGB", (WIDTH * scale, HEIGHT * scale), background)
+    draw = ImageDraw.Draw(master)
+    card = (s(17), s(51), s(303), s(229))
+    draw.rounded_rectangle(
+        card,
+        radius=s(18),
+        fill="#040C17",
+        outline="#213047",
+        width=max(1, s(1)),
+    )
+
+    # A broken-link glyph remains legible after 4x supersampling is reduced to
+    # the physical 320x240 panel.  The two coloured ends also provide a small
+    # amount of motion without moving the status text itself.
+    cyan = "#22C7F2"
+    orange = "#F07A32"
+    muted = "#8C98AA"
+    draw.arc((s(121), s(66), s(163), s(101)), 128, 312, fill=cyan, width=s(5))
+    draw.arc((s(157), s(66), s(199), s(101)), -52, 132, fill=orange, width=s(5))
+    draw.line((s(149), s(78), s(171), s(91)), fill="#E7EDF6", width=s(4))
+    draw.line((s(157), s(91), s(164), s(78)), fill=background, width=s(5))
+
+    draw.text(
+        (s(160), s(121)),
+        "未连接",
+        font=_cjk_font(s(34), bold=True),
+        fill="#F8FAFC",
+        anchor="mm",
+    )
+    draw.text(
+        (s(160), s(155)),
+        "请连接",
+        font=_cjk_font(s(20), bold=True),
+        fill="#F6A15E",
+        anchor="mm",
+    )
+    draw.text(
+        (s(160), s(180)),
+        "CLAUDE / CODEX 数据暂不可用",
+        font=_cjk_font(s(10), bold=True),
+        fill=muted,
+        anchor="mm",
+    )
+
+    if last_success_at is None:
+        footer = "等待首次成功刷新"
+    else:
+        footer = f"最后成功 {last_success_at.astimezone():%m-%d %H:%M}"
+    draw.rounded_rectangle(
+        (s(63), s(198), s(257), s(220)),
+        radius=s(11),
+        fill="#0A1423",
+        outline="#223148",
+        width=max(1, s(1)),
+    )
+    draw.ellipse((s(78), s(205), s(86), s(213)), fill="#E94F67")
+    draw.text(
+        (s(166), s(209)),
+        footer,
+        font=_cjk_font(s(9), bold=True),
+        fill="#B5C0D0",
+        anchor="mm",
+    )
+
+    # Reassert the system overlay band before and after resampling.
+    draw.rectangle((0, 0, WIDTH * scale - 1, s(40) - 1), fill=background)
+    return master
+
+
+def render_connection_status_outputs(
+    png_path: Path,
+    gif_path: Path,
+    master_path: Path,
+    *,
+    last_success_at: datetime | None = None,
+    preview_2x_path: Path | None = None,
+) -> None:
+    """Render an unmistakable disconnected screen instead of stale quota data.
+
+    While the Bridge is reachable, this asset replaces any failed or expired
+    account refresh immediately. Live quota GIFs also embed this design as
+    their non-looping final frame for complete host outages. The top 40 logical
+    pixels remain empty for the AP01 clock/date overlay.
+    """
+
+    from PIL import Image, ImageDraw
+
+    paths = [png_path, gif_path, master_path]
+    if preview_2x_path is not None:
+        paths.append(preview_2x_path)
+    for path in paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+    master = render_connection_status_master(last_success_at=last_success_at)
+    frame = _device_frame_from_master(master)
+    master.save(master_path, format="PNG", optimize=True)
+    frame.save(png_path, format="PNG", optimize=True)
+    if preview_2x_path is not None:
+        _frame_from_master(master, output_scale=PREVIEW_SCALE).save(
+            preview_2x_path,
+            format="PNG",
+            optimize=True,
+        )
+
+    palette = frame.quantize(colors=40, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    frames = []
+    for bright in (90, 160, 235, 160):
+        animated = frame.copy()
+        animated_draw = ImageDraw.Draw(animated)
+        animated_draw.ellipse(
+            (77, 204, 87, 214),
+            fill=(bright, round(bright * 0.34), round(bright * 0.44)),
+        )
+        frames.append(animated.quantize(palette=palette, dither=Image.Dither.NONE))
+    frames[0].save(
+        gif_path,
+        format="GIF",
+        save_all=True,
+        append_images=frames[1:],
+        loop=0,
+        duration=800,
+        disposal=2,
+        optimize=False,
+    )
+    if gif_path.read_bytes()[:6] != b"GIF89a":
+        raise RuntimeError("connection status is not an AP01-compatible GIF89a")
+    if gif_path.stat().st_size > 90_000:
+        raise RuntimeError(f"connection status GIF is too large: {gif_path.stat().st_size}")
 
 
 def _fallback(provider: str, used_percent: float) -> Quota:

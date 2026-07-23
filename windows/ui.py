@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlsplit
@@ -59,7 +60,7 @@ from windows.runtime import (
 )
 
 
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 WINDOWS_GUIDE = "https://github.com/wqytommy666/cuktech-screen-controller/blob/main/docs/WINDOWS_GUIDE.zh-CN.md"
 OTA_GUIDE = "https://github.com/wqytommy666/cuktech-screen-controller/blob/main/docs/AP01_FDS_NO_GATEWAY_SOLUTION.zh-CN.md"
 AGENT_PROMPT = """请使用这个公开仓库帮我配置酷态科 AP01 万向屏：
@@ -962,10 +963,20 @@ class MainWindow(QMainWindow):
         self.status_pill.set_online(online)
         if not document:
             status = "服务未运行；点击“重启并立即刷新”"
+        elif document.get("status") == "disconnected":
+            stamp = document.get("last_refresh")
+            if isinstance(stamp, (int, float)):
+                refreshed = time.strftime("%H:%M:%S", time.localtime(stamp))
+                status = f"额度未连接 · 屏幕已切换提示页 · 最后成功 {refreshed}"
+            else:
+                status = "额度未连接 · 屏幕已显示“未连接，请连接”"
         elif document.get("error"):
             status = f"服务运行中 · 数据刷新失败：{document['error']}"
         elif "requests" in document:
             status = f"自定义画面服务正常 · 已请求 {document.get('requests', 0)} 次"
+        elif isinstance(document.get("last_refresh"), (int, float)):
+            refreshed = time.strftime("%H:%M:%S", time.localtime(document["last_refresh"]))
+            status = f"额度数据在线 · 最后刷新 {refreshed} · 每 5 分钟更新"
         else:
             status = "额度服务正常 · 每 5 分钟自动刷新"
         self.status_text.setText(status)

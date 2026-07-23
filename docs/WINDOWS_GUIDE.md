@@ -10,7 +10,7 @@ diagnostics, and first-time OTA ticket handoff.
 ## Install the app (recommended)
 
 1. Open [GitHub Releases](https://github.com/wqytommy666/cuktech-screen-controller/releases/latest).
-2. Download `CUKTECH-Screen-Controller-0.4.0-Windows-x64.zip`.
+2. Download `CUKTECH-Screen-Controller-0.4.1-Windows-x64.zip`.
 3. Use **Extract All**. Do not launch it from Explorer's ZIP preview.
 4. Double-click `Install CUKTECH Screen Controller.cmd`.
 5. Open the app from the Start menu.
@@ -126,7 +126,8 @@ Read-only diagnostics:
 Only the first loader installation writes firmware Flash. Normal images and
 quota updates rotate `/tmp/.ap01q0.gif` through `.ap01q2.gif`, which are
 RAM-backed. A five-minute quota refresh does not repeatedly erase firmware or
-resource partitions. AP01 keeps the last good frame while the PC is offline.
+resource partitions. In quota mode, the AP01 changes to a disconnected page
+after about seven offline minutes; user-selected custom artwork stays static.
 
 Requirements: Windows 10/11 x64, AP01 `njcuk.enstor.ap01`; the included loader
 patch supports firmware `1.0.2_0031` only. A native Windows-on-ARM release is

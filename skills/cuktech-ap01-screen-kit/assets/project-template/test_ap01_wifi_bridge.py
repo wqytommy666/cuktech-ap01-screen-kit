@@ -56,11 +56,17 @@ class WiFiBridgeTests(unittest.TestCase):
                         time.sleep(0.1)
                 self.assertIsNotNone(health, process.stderr.read() if process.poll() is not None else "")
                 self.assertTrue(health["snapshot_ready"])
+                self.assertFalse(health["connected"])
+                self.assertEqual(health["status"], "disconnected")
 
                 with opener.open(f"http://127.0.0.1:{port}/screen.gif", timeout=2) as response:
                     payload = response.read()
                 self.assertTrue(payload.startswith(b"GIF89a"))
                 self.assertLessEqual(len(payload), 90_000)
+                with opener.open(f"http://127.0.0.1:{port}/api/v1/quota", timeout=2) as response:
+                    document = json.load(response)
+                self.assertEqual(document["status"], "disconnected")
+                self.assertEqual(document["message"], "未连接，请连接")
             finally:
                 process.terminate()
                 try:

@@ -3,7 +3,7 @@ param()
 
 $ErrorActionPreference = "Stop"
 $Version = "{{VERSION}}"
-if ($Version.StartsWith("{")) { $Version = "0.4.0" }
+if ($Version.StartsWith("{")) { $Version = "0.4.1" }
 $Source = Join-Path $PSScriptRoot "App"
 $SourceExe = Join-Path $Source "CUKTECH Screen Controller.exe"
 $InstallRoot = Join-Path $env:LOCALAPPDATA "Programs\CUKTECH Screen Controller"

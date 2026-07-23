@@ -17,6 +17,7 @@ from quota_dashboard import (
     _decrypt_windows_cookie,
     _read_json_rpc,
     _reset_countdown,
+    render_connection_status_outputs,
     render_frame,
     render_master,
     render_outputs,
@@ -179,13 +180,48 @@ class QuotaDashboardTests(unittest.TestCase):
             )
             with Image.open(gif_path) as image:
                 self.assertEqual(image.info.get("version"), b"GIF89a")
-                self.assertEqual(image.info.get("loop"), 0)
+                self.assertIsNone(image.info.get("loop"))
                 self.assertEqual(image.info.get("duration"), 600)
-                self.assertEqual(image.n_frames, 4)
+                self.assertEqual(image.n_frames, 6)
+                durations = []
+                for index in range(image.n_frames):
+                    image.seek(index)
+                    durations.append(image.info.get("duration"))
+                self.assertGreaterEqual(durations[-2], 400_000)
+                self.assertEqual(durations[-1], 60_000)
             self.assertLessEqual(gif_path.stat().st_size, AP01_GIF_MAX_BYTES)
             self.assertLessEqual(gif_path.stat().st_size, 90_000)
             with Image.open(root / "screen@2x.png") as preview:
                 self.assertEqual(preview.size, (640, 480))
+
+    def test_disconnected_screen_is_explicit_and_ap01_compatible(self) -> None:
+        from PIL import Image
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            gif_path = root / "disconnected.gif"
+            render_connection_status_outputs(
+                root / "disconnected.png",
+                gif_path,
+                root / "disconnected-master.png",
+                last_success_at=datetime.now().astimezone(),
+                preview_2x_path=root / "disconnected@2x.png",
+            )
+            self.assertEqual(gif_path.read_bytes()[:6], b"GIF89a")
+            self.assertLessEqual(gif_path.stat().st_size, 90_000)
+            with Image.open(gif_path) as image:
+                self.assertEqual(image.size, (320, 240))
+                self.assertEqual(image.info.get("loop"), 0)
+                self.assertGreaterEqual(image.n_frames, 2)
+            with Image.open(root / "disconnected.png") as image:
+                background = image.getpixel((0, 0))
+                self.assertTrue(
+                    all(
+                        image.getpixel((x, y)) == background
+                        for y in range(40)
+                        for x in range(320)
+                    )
+                )
 
 
 if __name__ == "__main__":

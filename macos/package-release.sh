@@ -3,7 +3,7 @@ set -euo pipefail
 
 HERE="${0:A:h}"
 ROOT="${HERE:h}"
-VERSION="${1:-0.4.0}"
+VERSION="${1:-0.4.1}"
 STAGE="$ROOT/dist/CUKTECH-Screen-Controller-$VERSION"
 RUNTIME="$STAGE/Runtime"
 ZIP="$ROOT/dist/CUKTECH-Screen-Controller-v$VERSION-macOS-arm64.zip"
@@ -44,7 +44,7 @@ cp "$HERE/store_mi_home_keychain.py" "$RUNTIME/macos/"
 chmod +x "$RUNTIME/macos/"*.sh
 echo "quota" > "$RUNTIME/artifacts/ap01-mode"
 
-CUKTECH_PORTABLE=1 CUKTECH_VERSION="$VERSION" CUKTECH_BUILD="${CUKTECH_BUILD:-5}" \
+CUKTECH_PORTABLE=1 CUKTECH_VERSION="$VERSION" CUKTECH_BUILD="${CUKTECH_BUILD:-7}" \
   "$HERE/build-app.sh" >/dev/null
 /usr/bin/ditto "$ROOT/dist/CUKTECH Screen Controller.app" "$STAGE/CUKTECH Screen Controller.app"
 

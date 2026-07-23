@@ -78,4 +78,5 @@ Run ./macos/diagnose.sh and repair the Bridge without performing OTA.
 ```
 
 The Bridge computer must remain logged in and connected to the same reachable
-LAN. The AP01 keeps the last successful screen while that computer is offline.
+LAN. In quota mode, AP01 changes to a disconnected page after about seven
+offline minutes; user-selected custom artwork remains unchanged.

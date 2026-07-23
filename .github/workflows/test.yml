@@ -64,16 +64,16 @@ jobs:
           python-version: '3.12'
       - name: Build the native Windows application
         shell: powershell
-        run: .\windows\build-app.ps1 -Version 0.4.0
+        run: .\windows\build-app.ps1 -Version 0.4.1
       - name: Package the Windows installer ZIP
         shell: powershell
-        run: .\windows\package-release.ps1 -Version 0.4.0 -SkipBuild
+        run: .\windows\package-release.ps1 -Version 0.4.1 -SkipBuild
       - uses: actions/upload-artifact@v4
         with:
           name: CUKTECH-Screen-Controller-Windows-x64
           path: |
-            dist/CUKTECH-Screen-Controller-0.4.0-Windows-x64.zip
-            dist/CUKTECH-Screen-Controller-0.4.0-Windows-x64.zip.sha256
+            dist/CUKTECH-Screen-Controller-0.4.1-Windows-x64.zip
+            dist/CUKTECH-Screen-Controller-0.4.1-Windows-x64.zip.sha256
 
   macos-app:
     runs-on: macos-14
@@ -81,7 +81,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: python3 -m venv .venv
       - run: .venv/bin/python -m pip install Pillow
-      - run: CUKTECH_PORTABLE=1 CUKTECH_VERSION=0.4.0 CUKTECH_BUILD=6 ./macos/build-app.sh
+      - run: CUKTECH_PORTABLE=1 CUKTECH_VERSION=0.4.1 CUKTECH_BUILD=7 ./macos/build-app.sh
       - run: codesign --verify --deep --strict 'dist/CUKTECH Screen Controller.app'
       - run: |
           test "$(otool -l 'dist/CUKTECH Screen Controller.app/Contents/MacOS/AP01ScreenController' | awk '/minos/{print $2; exit}')" = "14.0"

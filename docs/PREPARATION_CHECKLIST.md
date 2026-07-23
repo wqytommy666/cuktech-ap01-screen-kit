@@ -72,9 +72,10 @@ of GitHub.
 ## 6. Continuous operation
 
 Both desktop installers create a per-user login Bridge. Keep the Bridge computer awake and the user
-logged in for live updates. The AP01 retains the last successful screen while
-the Bridge computer sleeps or is offline, but it cannot refresh. Its normal poll interval
-is about five minutes, so a pushed image may not appear immediately.
+logged in for live updates. Quota mode changes to a disconnected page after
+about seven offline minutes, while custom artwork remains unchanged. The
+Bridge cannot refresh while the computer sleeps or is offline. Its normal poll
+interval is about five minutes, so a pushed image may not appear immediately.
 
 ## 7. Final checklist
 

@@ -24,7 +24,12 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from quota_dashboard import Quota, fetch_claude_desktop, fetch_codex, render_outputs
+from quota_dashboard import (
+    fetch_claude_desktop,
+    fetch_codex,
+    render_connection_status_outputs,
+    render_outputs,
+)
 
 
 HERE = Path(__file__).resolve().parent
@@ -38,16 +43,20 @@ JSON_OUT = ARTIFACTS / "quota-current.json"
 class State:
     def __init__(self) -> None:
         self.lock = threading.Lock()
+        self.publish_lock = threading.Lock()
         self.last_refresh: float | None = None
+        self.last_attempt: float | None = None
         self.error: str | None = None
         self.refreshing = False
+        self.screen_status = "starting"
+        self.stale_after = 420
 
 
 STATE = State()
 
 
 def _fetch_with_retry(label: str, callback, attempts: int = 3):
-    """Retry transient account/network failures before keeping the old screen."""
+    """Retry transient failures before publishing the disconnected screen."""
     last_error: Exception | None = None
     for attempt in range(1, attempts + 1):
         try:
@@ -67,79 +76,139 @@ def refresh() -> dict[str, object]:
     """Refresh both official accounts and atomically replace public artifacts."""
     with STATE.lock:
         STATE.refreshing = True
+        STATE.last_attempt = time.time()
     try:
         claude = _fetch_with_retry("Claude", fetch_claude_desktop)
         codex = _fetch_with_retry("Codex", fetch_codex)
         temporary_png = PNG.with_name(PNG.name + ".tmp")
         temporary_gif = GIF.with_name(GIF.name + ".tmp")
         temporary_master = MASTER.with_name(MASTER.name + ".tmp")
-        render_outputs(
-            claude,
-            codex,
-            temporary_png,
-            temporary_gif,
-            temporary_master,
-        )
+        refreshed_at = datetime.now().astimezone()
         document: dict[str, object] = {
             "schema": 1,
-            "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+            "generated_at": refreshed_at.isoformat(timespec="seconds"),
+            "status": "live",
             "claude": asdict(claude) | {"remaining_percent": claude.remaining_percent},
             "codex": asdict(codex) | {"remaining_percent": codex.remaining_percent},
         }
         temporary = JSON_OUT.with_suffix(".json.tmp")
-        temporary.write_text(
-            json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n",
-            encoding="utf-8",
-        )
-        temporary_png.replace(PNG)
-        temporary_gif.replace(GIF)
-        temporary_master.replace(MASTER)
-        temporary.replace(JSON_OUT)
+        with STATE.publish_lock:
+            render_outputs(
+                claude,
+                codex,
+                temporary_png,
+                temporary_gif,
+                temporary_master,
+                refreshed_at=refreshed_at,
+            )
+            temporary.write_text(
+                json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n",
+                encoding="utf-8",
+            )
+            temporary_png.replace(PNG)
+            temporary_gif.replace(GIF)
+            temporary_master.replace(MASTER)
+            temporary.replace(JSON_OUT)
         with STATE.lock:
             STATE.last_refresh = time.time()
             STATE.error = None
+            STATE.screen_status = "live"
         return document
     finally:
         with STATE.lock:
             STATE.refreshing = False
 
 
-def _ensure_snapshot() -> None:
-    """Create an immediately servable waiting screen on a fresh install."""
+def _parse_timestamp(value: object) -> float | None:
+    try:
+        return datetime.fromisoformat(str(value)).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def _publish_disconnected(reason: str, *, last_success: float | None = None) -> None:
+    """Atomically replace any old quota card with a clear disconnected page."""
+
+    if last_success is None:
+        with STATE.lock:
+            last_success = STATE.last_refresh
+    last_success_datetime = (
+        datetime.fromtimestamp(last_success).astimezone() if last_success is not None else None
+    )
+    temporary_png = PNG.with_name(PNG.name + ".status.tmp")
+    temporary_gif = GIF.with_name(GIF.name + ".status.tmp")
+    temporary_master = MASTER.with_name(MASTER.name + ".status.tmp")
+    temporary_json = JSON_OUT.with_name(JSON_OUT.name + ".status.tmp")
+    document: dict[str, object] = {
+        "schema": 1,
+        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "status": "disconnected",
+        "last_success_at": (
+            last_success_datetime.isoformat(timespec="seconds")
+            if last_success_datetime is not None
+            else None
+        ),
+        "message": "未连接，请连接",
+    }
+    with STATE.publish_lock:
+        render_connection_status_outputs(
+            temporary_png,
+            temporary_gif,
+            temporary_master,
+            last_success_at=last_success_datetime,
+        )
+        temporary_json.write_text(
+            json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+        temporary_png.replace(PNG)
+        temporary_gif.replace(GIF)
+        temporary_master.replace(MASTER)
+        temporary_json.replace(JSON_OUT)
+    with STATE.lock:
+        STATE.error = reason
+        STATE.screen_status = "disconnected"
+
+
+def _ensure_snapshot(stale_after: int) -> None:
+    """Serve only a fresh live snapshot; never resurrect an ambiguous old card."""
+
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
+    with STATE.lock:
+        STATE.stale_after = stale_after
     if all(path.is_file() for path in (PNG, GIF, MASTER, JSON_OUT)):
         try:
             document = json.loads(JSON_OUT.read_text(encoding="utf-8"))
-            generated = datetime.fromisoformat(str(document.get("generated_at", "")))
+            status = str(document.get("status") or "live")
+            last_success = _parse_timestamp(
+                document.get("last_success_at") or document.get("generated_at")
+            )
             with STATE.lock:
-                STATE.last_refresh = generated.timestamp()
+                STATE.last_refresh = last_success
+            if status == "disconnected":
+                with STATE.lock:
+                    STATE.error = "等待 Claude / Codex 恢复连接"
+                    STATE.screen_status = "disconnected"
+                return
+            if last_success is not None and time.time() - last_success <= stale_after:
+                with STATE.lock:
+                    STATE.error = None
+                    STATE.screen_status = "live"
+                return
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             pass
+        _publish_disconnected("本地额度数据已超过有效期", last_success=STATE.last_refresh)
         return
 
-    claude = Quota(provider="CLAUDE", used_percent=None, plan="MAX", source="waiting")
-    codex = Quota(provider="CODEX", used_percent=None, plan="PRO", source="waiting")
-    render_outputs(claude, codex, PNG, GIF, MASTER)
-    document = {
-        "schema": 1,
-        "generated_at": None,
-        "status": "waiting_for_first_refresh",
-        "claude": asdict(claude) | {"remaining_percent": claude.remaining_percent},
-        "codex": asdict(codex) | {"remaining_percent": codex.remaining_percent},
-    }
-    JSON_OUT.write_text(
-        json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-    )
+    _publish_disconnected("等待 Claude / Codex 首次成功刷新")
 
 
 def _refresh_once() -> None:
     try:
         refresh()
     except Exception as exc:
-        with STATE.lock:
-            STATE.error = str(exc)
-        print(f"Quota refresh failed; keeping last good screen: {exc}")
+        _publish_disconnected(str(exc))
+        print(f"Quota refresh failed; showing disconnected screen: {exc}")
 
 
 def _refresh_loop(interval: int, initial_delay: bool = False) -> None:
@@ -148,6 +217,23 @@ def _refresh_loop(interval: int, initial_delay: bool = False) -> None:
     while True:
         _refresh_once()
         time.sleep(interval)
+
+
+def _disconnect_if_stale() -> None:
+    with STATE.lock:
+        last_refresh = STATE.last_refresh
+        stale_after = STATE.stale_after
+        should_replace = (
+            STATE.screen_status == "live"
+            and not STATE.refreshing
+            and last_refresh is not None
+            and time.time() - last_refresh > stale_after
+        )
+    if should_replace:
+        _publish_disconnected(
+            f"额度数据超过 {stale_after} 秒没有成功刷新",
+            last_success=last_refresh,
+        )
 
 
 def _content(path: str) -> tuple[Path, str] | None:
@@ -162,12 +248,20 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "AP01QuotaBridge/0.1"
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib callback name
+        _disconnect_if_stale()
         if self.path == "/health":
             with STATE.lock:
+                age = time.time() - STATE.last_refresh if STATE.last_refresh is not None else None
+                connected = STATE.screen_status == "live" and STATE.error is None
                 body = json.dumps(
                     {
-                        "ok": STATE.error is None,
+                        "ok": connected,
+                        "connected": connected,
+                        "status": STATE.screen_status,
                         "last_refresh": STATE.last_refresh,
+                        "last_attempt": STATE.last_attempt,
+                        "age_seconds": round(age, 1) if age is not None else None,
+                        "stale_after": STATE.stale_after,
                         "error": STATE.error,
                         "refreshing": STATE.refreshing,
                         "snapshot_ready": GIF.is_file(),
@@ -268,6 +362,11 @@ def main() -> int:
     parser.add_argument("--bind", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--interval", type=int, default=300, help="refresh interval in seconds")
+    parser.add_argument(
+        "--stale-after",
+        type=int,
+        help="show disconnected after this many seconds without a successful refresh",
+    )
     parser.add_argument("--once", action="store_true", help="refresh once and exit")
     parser.add_argument("--no-initial-refresh", action="store_true")
     args = parser.parse_args()
@@ -281,7 +380,10 @@ def main() -> int:
             print(f"Quota refresh failed: {exc}")
             return 1
 
-    _ensure_snapshot()
+    stale_after = args.stale_after or max(args.interval + 120, round(args.interval * 1.4))
+    if stale_after < 90:
+        parser.error("--stale-after must be at least 90 seconds")
+    _ensure_snapshot(stale_after)
     server = ThreadingHTTPServer((args.bind, args.port), Handler)
     print(f"AP01 quota bridge: http://{lan_ip()}:{args.port}/api/v1/quota")
     print(f"AP01 screen GIF:   http://{lan_ip()}:{args.port}/screen.gif")

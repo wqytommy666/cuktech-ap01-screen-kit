@@ -503,10 +503,22 @@ final class AP01Model: ObservableObject {
                     // `ok=false` can mean only that the latest Claude/Codex
                     // refresh failed; it should not be shown as a dead service.
                     self.online = true
-                    if let problem = object["error"] as? String, !problem.isEmpty {
+                    if object["status"] as? String == "disconnected" {
+                        if let stamp = object["last_refresh"] as? TimeInterval {
+                            let formatter = DateFormatter()
+                            formatter.dateFormat = "HH:mm:ss"
+                            self.statusText = "额度未连接 · 屏幕已切换提示页 · 最后成功 \(formatter.string(from: Date(timeIntervalSince1970: stamp)))"
+                        } else {
+                            self.statusText = "额度未连接 · 屏幕已显示“未连接，请连接”"
+                        }
+                    } else if let problem = object["error"] as? String, !problem.isEmpty {
                         self.statusText = "服务运行中 · 数据刷新失败：\(problem)"
                     } else if let requests = object["requests"] as? Int {
                         self.statusText = "自定义画面服务正常 · 已请求 \(requests) 次"
+                    } else if let stamp = object["last_refresh"] as? TimeInterval {
+                        let formatter = DateFormatter()
+                        formatter.dateFormat = "HH:mm:ss"
+                        self.statusText = "额度数据在线 · 最后刷新 \(formatter.string(from: Date(timeIntervalSince1970: stamp))) · 每 5 分钟更新"
                     } else {
                         self.statusText = ok ? "额度服务正常 · 每 5 分钟自动刷新" : "服务运行中 · 等待下一次刷新"
                     }

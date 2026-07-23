@@ -59,6 +59,12 @@ The relay must never accept an arbitrary BIN or receive the AP01 owner's Xiaomi
 credentials/DID. It builds from the reviewed stock SHA-256 and uses the
 operator's gateway identity only for FDS upload. Daily updates do not use it.
 
+Quota GIFs deliberately omit the infinite-loop extension. They animate, hold
+the live values, then stop on a large disconnected frame after about seven
+minutes. A normal five-minute successful AP01 poll replaces and restarts the
+GIF first. This prevents a powered-off Bridge from leaving stale numbers that
+look live; it does not change the RAM-only transport or apply to custom art.
+
 ### Manual or operator flow
 
 Start the bridge before installation. Validate transport first, then install

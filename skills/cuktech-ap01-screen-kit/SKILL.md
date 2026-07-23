@@ -73,6 +73,10 @@ artifacts into a shareable project.
   and refresh interval. It must reject arbitrary firmware uploads, pin the
   reviewed stock SHA-256, omit signed URLs from logs, and never receive the
   AP01 owner's Xiaomi credentials or DID.
+- Quota dashboards must expose freshness: include the last successful refresh
+  time, replace failed/stale collection with an explicit disconnected screen,
+  and keep the final non-looping GIF frame as a seven-minute offline fallback.
+  Custom artwork should not self-expire.
 
 ## Validate before delivery
 

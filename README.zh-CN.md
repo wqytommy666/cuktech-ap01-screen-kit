@@ -63,11 +63,11 @@ CUKTECH Screen Controller 提供两种使用方式。
 下载最新版 **CUKTECH Screen Controller**：
 
 - **Windows 10/11 x64：**解压
-  `CUKTECH-Screen-Controller-0.4.0-Windows-x64.zip`，双击
+  `CUKTECH-Screen-Controller-0.4.1-Windows-x64.zip`，双击
   **`Install CUKTECH Screen Controller.cmd`**。详见
   [Windows 使用指南](docs/WINDOWS_GUIDE.zh-CN.md)；
 - **Apple Silicon macOS：**解压
-  `CUKTECH-Screen-Controller-v0.4.0-macOS-arm64.zip`，双击
+  `CUKTECH-Screen-Controller-v0.4.1-macOS-arm64.zip`，双击
   **`Install CUKTECH Screen Controller.command`**。
 
 两个安装器都会开启登录后自动运行的后台 Bridge。Windows 包自带完整运行环境；
@@ -97,7 +97,7 @@ macOS 安装器会在第一次运行时创建隔离 Python 环境。
 - 首次加载器安装前，需要准备 AP01 所属的米家账号并确认型号
   `njcuk.enstor.ap01`、固件 `1.0.2_0031`。不要拔电、重置或让设备离线；
 - 实时画面依赖电脑保持开机、用户已登录且 Bridge 正在运行。电脑睡眠或关机时，
-  AP01 会保留最后一次成功画面，但不会继续更新；
+  额度面板约 7 分钟后显示“未连接，请连接”；用户主动选择的静态/自定义画面保持不变；
 - 建议在路由器中为电脑设置 DHCP 地址保留，避免重启后局域网 IP 变化。
 
 完整清单请看：[安装前准备与联网说明](docs/PREPARATION_CHECKLIST.zh-CN.md)。
@@ -171,7 +171,17 @@ flowchart LR
   会发生一次固件 Flash 写入。
 - **日常图片与额度刷新**：GIF 只轮换写入 `/tmp/.ap01q*.gif`，不写固件分区
   或资源分区，不会因为五分钟刷新一次而把 Flash 刷坏。
-- 运行 Bridge 的电脑暂时离线时，AP01 保留最后一次成功画面；Bridge 恢复后继续刷新。
+- 运行 Bridge 的电脑暂时离线时，AP01 最多保留当前面板约 7 分钟，随后显示
+  “未连接，请连接”；Bridge 恢复后继续刷新。
+
+### 如何判断屏幕上的额度是不是最新的
+
+- 软件每 5 分钟重新读取 Claude/Codex 官方本机登录态；
+- 在线卡片的计划徽章带绿色状态点和最后成功刷新时间，可与屏幕顶部时钟直接比较；
+- 采集失败时，Bridge 不再保留旧数字，而是发送大字“未连接 / 请连接”状态页；
+- 即使电脑直接关机、AP01 完全访问不到 Bridge，已下发的实时 GIF 也会在约 7 分钟后
+  自动停在“未连接，请连接”，不会把上一张额度图永久伪装成实时数据；
+- 连接恢复并成功刷新后，下一次 AP01 轮询会自动恢复最新额度面板。
 
 ## 这是什么？
 
